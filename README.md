@@ -1,11 +1,12 @@
 # Loupe
 
-A Zed extension that shows the latest available version of your npm dependencies inline, as inlay hints.
+A Zed extension that shows the latest available version of your dependencies inline, as inlay hints. Supports multiple package registries across ecosystems.
 
 ## What it looks like
 
-Each dependency gets an inlay hint at the end of its line:
+Each dependency gets an inlay hint at the end of its line showing whether it's up to date or a newer version is available.
 
+**package.json** (npm):
 ```json
 "dependencies": {
   "vscode-languageserver": "^9.0.1",              ✓ 9.0.1
@@ -14,12 +15,21 @@ Each dependency gets an inlay hint at the end of its line:
 }
 ```
 
+**composer.json** (Packagist):
+```json
+"require": {
+  "php": "^8.2",
+  "laravel/framework": "^11.0",  ✓ 11.0.0
+  "league/flysystem": "^3.0",    ⬆ 3.29.0 available
+}
+```
+
 ## Supported ecosystems
 
-| File | Registry |
-|---|---|
-| `package.json` | npm |
-| `composer.json` | Packagist |
+| File | Registry | Sections scanned |
+|---|---|---|
+| `package.json` | npm | `dependencies`, `devDependencies`, `peerDependencies` |
+| `composer.json` | Packagist | `require`, `require-dev` |
 
 ## Installation
 
