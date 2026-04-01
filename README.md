@@ -57,7 +57,59 @@ Or to limit it to JSON files only:
 
 ## Contributing
 
-Contributions are welcome. If you'd like to add support for another ecosystem, the pattern is straightforward — each file type needs a parser and a registry fetch function in `lsp/src/server.ts`. See the existing handler for reference.
+Contributions are welcome. The LSP server is modular — each package registry is a self-contained handler.
+
+### Adding a new registry
+
+The source is structured as follows:
+
+```
+lsp/src/
+  server.ts          ← LSP wiring, never needs to change
+  types.ts           ← RegistryHandler interface + PackageInfo type
+  cache.ts           ← reusable TTL version cache
+  log.ts             ← shared logger
+  registries/
+    index.ts         ← list of active handlers (add yours here)
+    npm.ts           ← npm / package.json handler (use as reference)
+```
+
+To add support for a new registry:
+
+1. Create `lsp/src/registries/<name>.ts` and implement the `RegistryHandler` interface:
+
+```ts
+import type { PackageInfo, RegistryHandler } from "../types";
+
+export const myHandler: RegistryHandler = {
+  matches(uri: string): boolean {
+    // return true for the file(s) this handler covers
+  },
+
+  extractPackages(text: string, lines: string[]): PackageInfo[] {
+    // parse the file and return a PackageInfo for each dependency
+  },
+
+  async fetchLatestVersion(name: string): Promise<string> {
+    // fetch from your registry and return the latest version string
+  },
+};
+```
+
+2. Register it in `lsp/src/registries/index.ts`:
+
+```ts
+import { myHandler } from "./my-registry";
+
+export const registries: RegistryHandler[] = [
+  npmHandler,
+  myHandler, // add here
+];
+```
+
+That's it — `server.ts` requires no changes.
+
+### Dev setup
 
 ```bash
 git clone https://github.com/stefanbc/loupe-zed
