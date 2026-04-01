@@ -44,6 +44,10 @@ export const packagistHandler: RegistryHandler = {
 		return packages;
 	},
 
+	clearCache(): void {
+		cache.clear();
+	},
+
 	async fetchLatestVersion(name: string): Promise<string> {
 		const cached = cache.get(name);
 		if (cached) return cached;

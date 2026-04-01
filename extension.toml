@@ -8,4 +8,4 @@ repository = "https://github.com/stefanbc/loupe-zed"
 
 [language_servers.loupe-lsp]
 name = "Loupe LSP"
-languages = ["JSON"]
+languages = ["JSON", "TOML"]

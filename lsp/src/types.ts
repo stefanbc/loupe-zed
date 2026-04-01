@@ -13,4 +13,7 @@ export interface RegistryHandler {
 
 	/** Fetches the latest published version of the given package. */
 	fetchLatestVersion(name: string): Promise<string>;
+
+	/** Clears the internal version cache, forcing fresh fetches on the next request. */
+	clearCache?(): void;
 }

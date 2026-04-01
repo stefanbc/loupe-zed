@@ -19,4 +19,8 @@ export class VersionCache {
 	set(key: string, version: string): void {
 		this.cache.set(key, { version, fetchedAt: Date.now() });
 	}
+
+	clear(): void {
+		this.cache.clear();
+	}
 }

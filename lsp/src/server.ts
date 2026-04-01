@@ -1,5 +1,7 @@
 import {
 	createConnection,
+	type ExecuteCommandParams,
+	type InitializeParams,
 	type InitializeResult,
 	type InlayHint,
 	type InlayHintParams,
@@ -11,17 +13,59 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { log } from "./log";
 import { registries } from "./registries/index";
 
+const REFRESH_COMMAND = "loupe.refresh";
+const AUTO_REFRESH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
 
-connection.onInitialize((): InitializeResult => {
+let clientSupportsRefresh = false;
+
+connection.onInitialize((params: InitializeParams): InitializeResult => {
 	log("onInitialize");
+
+	clientSupportsRefresh =
+		params.capabilities.workspace?.inlayHint?.refreshSupport === true;
+
+	log(`clientSupportsRefresh: ${clientSupportsRefresh}`);
+
 	return {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
-			inlayHintProvider: true,
+			inlayHintProvider: { resolveProvider: false },
+			executeCommandProvider: {
+				commands: [REFRESH_COMMAND],
+			},
 		},
 	};
+});
+
+connection.onInitialized(() => {
+	log("onInitialized — starting auto-refresh timer");
+
+	const timer = setInterval(() => {
+		const hasHandledDoc = [...documents.all()].some((doc) =>
+			registries.some((r) => r.matches(doc.uri)),
+		);
+
+		if (!hasHandledDoc) return;
+
+		log("auto-refresh: clearing caches and requesting inlay hint refresh");
+		clearAllCaches();
+		sendRefresh();
+	}, AUTO_REFRESH_INTERVAL_MS);
+
+	// Don't let the timer prevent a clean process exit.
+	timer.unref();
+});
+
+connection.onExecuteCommand((params: ExecuteCommandParams) => {
+	if (params.command === REFRESH_COMMAND) {
+		log("manual refresh triggered via loupe.refresh command");
+		clearAllCaches();
+		sendRefresh();
+	}
+	return null;
 });
 
 connection.languages.inlayHint.on(
@@ -72,6 +116,25 @@ connection.languages.inlayHint.on(
 		return hints;
 	},
 );
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function clearAllCaches(): void {
+	for (const r of registries) {
+		r.clearCache?.();
+	}
+}
+
+function sendRefresh(): void {
+	if (!clientSupportsRefresh) {
+		log("client does not support inlayHint refresh — skipping");
+		return;
+	}
+
+	connection.languages.inlayHint.refresh().catch((e: unknown) => {
+		log(`inlayHint refresh error: ${e}`);
+	});
+}
 
 documents.listen(connection);
 connection.listen();
