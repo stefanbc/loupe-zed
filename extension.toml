@@ -1,0 +1,11 @@
+id = "loupe"
+name = "Loupe"
+description = "Inspect latest package versions inline"
+version = "0.1.0"
+schema_version = 1
+authors = ["Stefan Cosma <hi@stefancosma.xyz>"]
+repository = "https://github.com/stefanbc/loupe-zed"
+
+[language_servers.loupe-lsp]
+name = "Loupe LSP"
+languages = ["JSON"]

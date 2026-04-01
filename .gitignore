@@ -1,0 +1,17 @@
+# Rust
+target/
+Cargo.lock
+
+# Node
+lsp/node_modules/
+lsp/dist/
+
+# Zed extension build output
+*.wasm
+
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
