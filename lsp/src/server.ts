@@ -1,6 +1,5 @@
 import {
 	createConnection,
-	type ExecuteCommandParams,
 	type InitializeParams,
 	type InitializeResult,
 	type InlayHint,
@@ -13,7 +12,6 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { log } from "./log";
 import { registries } from "./registries/index";
 
-const REFRESH_COMMAND = "loupe.refresh";
 const AUTO_REFRESH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 const connection = createConnection(ProposedFeatures.all);
@@ -31,11 +29,13 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 
 	return {
 		capabilities: {
-			textDocumentSync: TextDocumentSyncKind.Incremental,
-			inlayHintProvider: { resolveProvider: false },
-			executeCommandProvider: {
-				commands: [REFRESH_COMMAND],
+			// Object form is required so the client sends save notifications.
+			textDocumentSync: {
+				openClose: true,
+				change: TextDocumentSyncKind.Incremental,
+				save: { includeText: false },
 			},
+			inlayHintProvider: { resolveProvider: false },
 		},
 	};
 });
@@ -59,13 +59,16 @@ connection.onInitialized(() => {
 	timer.unref();
 });
 
-connection.onExecuteCommand((params: ExecuteCommandParams) => {
-	if (params.command === REFRESH_COMMAND) {
-		log("manual refresh triggered via loupe.refresh command");
-		clearAllCaches();
-		sendRefresh();
-	}
-	return null;
+// On save: clear only the relevant registry's cache so the very next
+// inlay-hint request fetches fresh versions from the registry API.
+documents.onDidSave((event) => {
+	const uri = event.document.uri;
+	const handler = registries.find((r) => r.matches(uri));
+	if (!handler) return;
+
+	log(`save detected on handled file: ${uri} — clearing cache`);
+	handler.clearCache?.();
+	sendRefresh();
 });
 
 connection.languages.inlayHint.on(
