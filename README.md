@@ -19,6 +19,7 @@ Each dependency gets an inlay hint at the end of its line:
 | File | Registry |
 |---|---|
 | `package.json` | npm |
+| `composer.json` | Packagist |
 
 ## Installation
 
