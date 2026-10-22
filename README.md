@@ -93,10 +93,35 @@ Or to limit it to specific file types only:
 
 Version hints are cached for 5 minutes and automatically refreshed every hour while the extension is running. To force an immediate refresh, simply **save the file** — Loupe detects the save, clears the cache for that file's registry, and fetches the latest versions straight away.
 
+## Custom npm registries
+
+For `package.json` files, Loupe respects your **`~/.npmrc`**, so private or company registries (Verdaccio, Nexus, Artifactory, GitHub Packages, …) work out of the box. The following settings are supported:
+
+- `registry`: the default registry (falls back to `https://registry.npmjs.org/`)
+- `@scope:registry`: a registry for a specific scope
+- `//host/path/:_authToken`: a bearer token for a registry
+- `//host/path/:_auth`, or `username` + `_password`: basic auth for a registry
+- `cafile`: a PEM file with one or more additional CA certificates, e.g. for a company root CA
+- `ca` / `ca[]`: inline PEM certificates (with `\n` line breaks)
+- `strict-ssl=false`: disables certificate verification for all npm lookups (not recommended)
+- `${ENV_VAR}` placeholders in values, so you don't have to store tokens in the file
+
+```ini
+@mycompany:registry=https://npm.mycompany.com/
+//npm.mycompany.com/:_authToken=${NPM_TOKEN}
+cafile=/Users/me/.certs/CompanyRoot.pem
+```
+
+Certificates from `cafile` and `ca` are trusted **in addition to** the built-in root certificates, so the public npm registry keeps working. Redirects (e.g. from `http://` to `https://`) are followed, and credentials are only sent to hosts that have them configured.
+
+Changes to `~/.npmrc` are picked up the next time you save a `package.json` or on the hourly refresh.
+
+> **Note:** Only the `.npmrc` in your home directory is read for now. Project-level `.npmrc` files, `NPM_CONFIG_*` environment variables, client certificates (`certfile` / `keyfile`) and proxies (`proxy` / `https-proxy`) are not supported yet.
+
 ## Requirements
 
 - Zed 0.205 or later
-- An internet connection for registry lookups (results are cached for 5 minutes)
+- Network access to the configured registries (results are cached for 5 minutes)
 
 ## Contributing
 
@@ -166,6 +191,8 @@ name = "Loupe LSP"
 languages = ["JSON", "TOML", "MyLanguage"]
 ```
 
+4. Add tests in `lsp/src/registries/my-registry.test.ts`, next to the handler (see `npmrc.test.ts` and `npm.test.ts` for examples).
+
 That's it — `server.ts` requires no changes.
 
 ### Dev setup
@@ -176,6 +203,14 @@ cd loupe-zed/lsp
 npm install
 npm run watch
 ```
+
+Run the tests (type check plus [`node:test`](https://nodejs.org/api/test.html)) with:
+
+```bash
+npm test
+```
+
+Tests live next to the code as `*.test.ts` and are excluded from the build via `tsconfig.build.json`. The TLS tests generate a throwaway CA at runtime and need `openssl` on your `PATH`; they are skipped without it. No test talks to the internet.
 
 Then load the extension as a dev extension in Zed via Extensions → Install Dev Extension.
 

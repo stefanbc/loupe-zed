@@ -1,0 +1,9 @@
+{
+  // Emits dist/ for the extension; tests and test helpers are type-checked
+  // via tsconfig.json but never shipped.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+  },
+  "exclude": ["src/**/*.test.ts", "src/test-utils.ts"],
+}
